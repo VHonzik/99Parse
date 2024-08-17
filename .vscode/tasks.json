@@ -1,0 +1,23 @@
+{
+  "version": "2.0.0",
+  "tasks": [
+    {
+      "label": "Run & Debug Inside Container",
+      "type": "shell",
+      "command": "./run.sh",
+      "problemMatcher": []
+    },
+    {
+      "label": "Build Debug APK",
+      "type": "shell",
+      "command": "./build.sh --mode=Debug",
+      "problemMatcher": []
+    },
+    {
+      "label": "Build Release AAB",
+      "type": "shell",
+      "command": "./build.sh --aab",
+      "problemMatcher": []
+    }
+  ]
+}

@@ -6,7 +6,7 @@ RUN apt-get update
 RUN apt-get install -y curl git build-essential autotools-dev automake libtool pkg-config \
 libfreetype6-dev libluajit-5.1-dev libsdl2-dev libopenal-dev libogg-dev \
 libvorbis-dev libmodplug-dev libmpg123-dev libtheora-dev libharfbuzz-dev \
-unzip cmake
+unzip cmake vim
 
 # Build Lua 5.4.7 from source
 # Note: Love comes with it's own Lua interpreter LuaJIT and also some Lua 5.3 features so this not required

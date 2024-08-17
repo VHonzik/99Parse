@@ -1,0 +1,14 @@
+{
+  "name": "99 Parse Dev Container",
+  "build": {
+    "dockerfile": "Dockerfile"
+  },
+  "customizations": {
+    "vscode": {
+      "extensions": [
+        "sumneko.lua",
+        "streetsidesoftware.code-spell-checker"
+      ]
+    }
+  }
+}

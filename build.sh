@@ -6,9 +6,18 @@ set -e # Exit immediately if a command exits with a non-zero status.
 set -u # Treat unset variables as an error when substituting.
 set -o pipefail # the return value of a pipeline is the status of the last command to exit with a non-zero status
 
+# Build variables
 CLEAN=false
 MODE=Release
 AAB=false
+
+# Meta data
+# TODO get these from a file
+APP_NAME=99Parse
+CODE_VERSION=1
+MAJOR_VERSION=0
+MINOR_VERSION=1
+COMMIT_SHA=$(git rev-parse --short HEAD)
 
 # Help page
 help() {
@@ -25,23 +34,6 @@ help() {
   echo "  --clean            clean the output directory and exit"
   echo "  --help             print this help page and exit"
   echo
-}
-
-generateGradleProperties() {
-  cat <<EOF > gradle.properties
-app.name=$1
-
-app.application_id=org.love2d.android
-app.orientation=landscape
-app.version_code=$2
-app.version_name=$3
-
-android.enableJetifier=false
-android.useAndroidX=true
-android.defaults.buildfeatures.buildconfig=true
-android.nonTransitiveRClass=true
-android.nonFinalResIds=true
-EOF
 }
 
 for i in "$@"; do
@@ -81,6 +73,13 @@ fi
 MODE_LOWERCASE=${MODE,,}
 mkdir -p output/$MODE
 
+echo ======================== Updating version file =========================
+cat <<EOF > src/version.lua
+local version = {}
+version.fullString="$MAJOR_VERSION.$MINOR_VERSION.$COMMIT_SHA"
+return version
+EOF
+
 echo ================== Copying game files to Love Android ==================
 cp src/* /love-android/app/src/embed/assets
 cp assets/icon-72x72.png    /love-android/app/src/main/res/drawable-hdpi/love.png
@@ -92,7 +91,22 @@ echo Done
 
 echo ====================== Building Android package ========================
 pushd /love-android
-generateGradleProperties 99Parse 1 0.1
+
+# Generate gradle.properties
+cat <<EOF > gradle.properties
+app.name=$APP_NAME
+
+app.application_id=org.love2d.android
+app.orientation=landscape
+app.version_code=$CODE_VERSION
+app.version_name=$MAJOR_VERSION.$MINOR_VERSION.$COMMIT_SHA
+
+android.enableJetifier=false
+android.useAndroidX=true
+android.defaults.buildfeatures.buildconfig=true
+android.nonTransitiveRClass=true
+android.nonFinalResIds=true
+EOF
 
 OUTPUT_NAME="app-embed-noRecord-$MODE_LOWERCASE"
 if [ "$AAB" = "true" ] ; then

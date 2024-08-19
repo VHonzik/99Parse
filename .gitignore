@@ -41,3 +41,6 @@ luac.out
 
 # Build outputs
 output
+
+# Version files
+src/version.lua

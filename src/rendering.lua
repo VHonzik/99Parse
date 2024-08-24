@@ -3,12 +3,13 @@ local rendering = {}
 local fpsCapInv = 1.0 / 30.0
 local fpsCapInvNudge = fpsCapInv * 0.01
 
+local assets = require('assets')
+
 function rendering.load()
   rendering.renderresolution = {}
   rendering.renderresolution.w = 1920
   rendering.renderresolution.h = 1080
-  BgImage = love.graphics.newImage("Background1920.jpg")
-  ArcaneBlast = love.graphics.newImage("ArcaneBlast.jpg")
+
   rendering.canvas = love.graphics.newCanvas(rendering.renderresolution.w, rendering.renderresolution.h)
   rendering.queue = {}
   rendering.frameStart = 0
@@ -22,16 +23,26 @@ function rendering.pushback(object)
   table.insert(rendering.queue, object)
 end
 
+function rendering.erase(object)
+  local found = -1
+  for index, value in ipairs(rendering.queue) do
+    if (value == object) then
+      found = index
+      break
+    end
+  end
+  if found >= 0 then
+    table.remove(rendering.queue, found)
+  end  
+end
+
 function rendering.draw()
   love.graphics.setCanvas(rendering.canvas)
     love.graphics.clear()
       love.graphics.push()
-      love.graphics.draw(BgImage, 0, 0)
-      for i = 0, 4 do
-        love.graphics.draw(ArcaneBlast, 50, 50+((255*0.6)+50)*i)
-      end
+      love.graphics.draw(assets.T_Background, 0, 0)
       for _,object in ipairs(rendering.queue) do
-        object.draw()
+        object:draw()
       end
     love.graphics.pop()
   love.graphics.setCanvas()

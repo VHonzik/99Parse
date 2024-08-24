@@ -81,7 +81,7 @@ return version
 EOF
 
 echo ================== Copying game files to Love Android ==================
-cp src/* /love-android/app/src/embed/assets
+cp -r src/* /love-android/app/src/embed/assets
 cp assets/icon-72x72.png    /love-android/app/src/main/res/drawable-hdpi/love.png
 cp assets/icon-48x48.png    /love-android/app/src/main/res/drawable-mdpi/love.png
 cp assets/icon-96x96.png    /love-android/app/src/main/res/drawable-xhdpi/love.png

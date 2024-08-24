@@ -3,63 +3,119 @@
 -- Breakpoints are added by calling the object: `dgb()`
 local debug = os.getenv("DEBUG_99PARSE") == "1"
 if debug then
-  local dbg = require 'debugger'
+  dbg = require 'debugger'
 end
 
 local diagnostics = require('diagnostics')
 local rendering = require('rendering')
+local assets = require('assets')
+require("abilityslot")
+require("combattext")
+
+local abilitySlots = {}
+local combatTexts = {}
 
 function love.load()
+  assets.load()
   rendering.load()
   diagnostics.load()
 
-  -- Register objects to render
+  -- Create ability slots and register them to render
+  for i = 0, 4 do
+    local y = 40 + (assets.T_ArcaneBlast:getHeight() + 35) * i
+    local abilitySlot = AbilitySlot:new{icon=assets.T_ArcaneBlast, x=50, y=y}
+    table.insert(abilitySlots, abilitySlot)
+    rendering.pushback(abilitySlot)
+  end
+
+  -- Register diagnostics to render
   rendering.pushback(diagnostics)
 end
 
 function love.update(dt)
   rendering.update()
   diagnostics.update(dt)
+  for _, combatText in ipairs(combatTexts) do
+    combatText:update(dt)
+  end
+
+  for i = #combatTexts, 1, -1 do
+    if combatTexts[i].destroyed then
+      table.remove(combatTexts, i)
+    end
+  end
 end
 
 function love.keypressed(key)
   if debug then
     -- Exit when Escape is pressed, useful for development
-    if (key == "escape" and debug) then
+    if (key == "escape") then
       love.event.quit(0)
+    end
+
+    if (key == "pause") then
+      dbg()
     end
   end
 end
 
-function Spellclick(x,y)
+function CreateCombatText(text)
+  local ct = CombatText:new{text=text}
+  table.insert(combatTexts, ct)
+  return ct
+end
+
+function Press(x,y)
   local renderX, renderY = rendering.screentorender(x,y)
-  local blastW, blastH = ArcaneBlast:getDimensions()
+
+  for _, abilitySlot in ipairs(abilitySlots) do
+    if (abilitySlot:inside(renderX, renderY)) then
+      abilitySlot:press()
+    end
+  end
+end
+
+function Release(x,y)
+  local renderX, renderY = rendering.screentorender(x,y)
 
   local clickedSomething = false
-  for i = 1, 5 do
-    local startX = 50
-    local startY = 50+((255*0.6)+50)*(i-1)
-    if (renderX >= startX and renderX <= startX + blastW) and (renderY >= startY and renderY <= startY + blastH) then
-      diagnostics.spellclick(i)
+  for i, abilitySlot in ipairs(abilitySlots) do
+    if (abilitySlot:inside(renderX, renderY)) then
+      diagnostics.spellrelease(i)
+      CreateCombatText(""..i)
       clickedSomething = true
     end
+    abilitySlot:release()
   end
 
   if (not clickedSomething) then
-    diagnostics.nothingclick()
+    diagnostics.nothingrelease()
   end
 end
 
 function love.touchpressed(_, x, y, _, _, _)
   diagnostics.touchpressed(x, y)
-  Spellclick(x,y)
+  Press(x,y)
 end
 
-function love.mousepressed(x, y, button, istouch, presses)
+function love.touchreleased(_, x, y, _, _, _)
+  diagnostics.touchreleased(x, y)
+  Release(x, y)
+end
+
+function love.mousepressed(x, y, button, istouch, _)
   -- Simulate touch with primary mouse, useful for development
   if (button == 1) and (not istouch) then
     diagnostics.touchpressed(x, y)
-    Spellclick(x,y)
+    Press(x,y)
+  end
+end
+
+function love.mousereleased( x, y, button, istouch, _)
+  -- Simulate touch with primary mouse, useful for development
+  if (button == 1) and (not istouch) then
+    diagnostics.touchreleased(x, y)
+    Release(x, y)
   end
 end
 

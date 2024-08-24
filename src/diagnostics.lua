@@ -58,7 +58,10 @@ function diagnostics.draw()
   love.graphics.print(math.floor(diagnostics.fps).." fps", x, y)
   y = y + 15
   if next(diagnostics.lastTouch) ~= nil then
-    love.graphics.print("Touch x:"..diagnostics.lastTouch.x.." y:"..diagnostics.lastTouch.y, x, y)
+    local prefix = "Touch"
+    if not diagnostics.lastTouch.pressed then prefix="Touch release" end
+    local coordinates = " x:"..math.floor(diagnostics.lastTouch.x).." y:"..math.floor(diagnostics.lastTouch.y)
+    love.graphics.print(prefix..coordinates, x, y)
     y = y + 15
   end
   if next(diagnostics.spellClick) ~= nil then
@@ -70,14 +73,21 @@ end
 function diagnostics.touchpressed(x, y)
   diagnostics.lastTouch.x = x
   diagnostics.lastTouch.y = y
+  diagnostics.lastTouch.pressed = true
+end
+ 
+function diagnostics.touchreleased(x, y)
+  diagnostics.lastTouch.x = x
+  diagnostics.lastTouch.y = y
+  diagnostics.lastTouch.pressed = false
 end
 
-function diagnostics.spellclick(i)
+function diagnostics.spellrelease(i)
   diagnostics.spellClick.id = i
   diagnostics.spellClick.timer = 2.0
 end
 
-function diagnostics.nothingclick()
+function diagnostics.nothingrelease()
   diagnostics.spellClick = {}
 end
 

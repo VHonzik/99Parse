@@ -87,7 +87,7 @@ function diagnostics.spellrelease(i)
   diagnostics.spellClick.timer = 2.0
 end
 
-function diagnostics.nothingrelease()
+function diagnostics.releaseEmptySpace()
   diagnostics.spellClick = {}
 end
 

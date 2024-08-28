@@ -49,6 +49,9 @@ function game.update(dt)
     abilitySlot:update(dt)
   end
 
+  -- Castbar update
+  game.castBar:update(dt)
+
   -- Destroy combat texts outside of the screen
   for i = #game.combatTexts, 1, -1 do
     if game.combatTexts[i].markedForDestruction then

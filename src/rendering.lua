@@ -63,4 +63,7 @@ function rendering.screenToRender(x,y)
   return renderX, renderY
 end
 
+function rendering.createLayer()
+end
+
 return rendering

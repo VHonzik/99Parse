@@ -14,7 +14,7 @@ function diagnostics.load()
 end
 
 function diagnostics.update(dt)
-  diagnostics.updatefps(dt)
+  diagnostics.updateFps(dt)
   if next(diagnostics.spellClick) ~= nil then
     diagnostics.spellClick.timer = diagnostics.spellClick.timer - dt
     if diagnostics.spellClick.timer <= 0 then
@@ -23,7 +23,7 @@ function diagnostics.update(dt)
   end
 end
 
-function diagnostics.updatefps(dt)
+function diagnostics.updateFps(dt)
   -- Skip first few frames since during initialization dts can be quite large
   if diagnostics.fpsSkipCounter > 0 then
     diagnostics.fpsSkipCounter = diagnostics.fpsSkipCounter - 1
@@ -70,19 +70,19 @@ function diagnostics.draw()
   end
 end
  
-function diagnostics.touchpressed(x, y)
+function diagnostics.touchPressed(x, y)
   diagnostics.lastTouch.x = x
   diagnostics.lastTouch.y = y
   diagnostics.lastTouch.pressed = true
 end
  
-function diagnostics.touchreleased(x, y)
+function diagnostics.touchReleased(x, y)
   diagnostics.lastTouch.x = x
   diagnostics.lastTouch.y = y
   diagnostics.lastTouch.pressed = false
 end
 
-function diagnostics.spellrelease(i)
+function diagnostics.absilitySlotRelease(i)
   diagnostics.spellClick.id = i
   diagnostics.spellClick.timer = 2.0
 end

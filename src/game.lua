@@ -12,11 +12,18 @@ local rendering = require('rendering')
 require("abilityslot")
 require("combattext")
 require("castbar")
+require("ability")
 
 local game = {}
 
 game.abilitySlots = {}
 game.combatTexts = {}
+game.abilities = {}
+game.castingAbility = nil
+game.castingAbilitySlot = nil
+game.queuedAbility = nil
+game.queuedAbilitySlot = nil
+game.queueWindow = 400.0 / 1000.0
 
 function game.load()
   assets.load()
@@ -24,10 +31,12 @@ function game.load()
   rendering.load()
   Castbar.load()
 
-  -- Create ability slots and register them to render
+  -- Create ability slots and abilities
   for i = 0, 4 do
     local y = 40 + (assets.T_ArcaneBlast:getHeight() + 35) * i
-    local abilitySlot = AbilitySlot:new{icon=assets.T_ArcaneBlast, x=50, y=y}
+    local ability = Ability:new{icon=assets.T_ArcaneBlast, index=i}
+    local abilitySlot = AbilitySlot:new{x=50, y=y, ability=ability}
+    table.insert(game.abilities, ability)
     table.insert(game.abilitySlots, abilitySlot)
   end
 
@@ -44,13 +53,18 @@ function game.update(dt)
     combatText:update(dt)
   end
 
-  -- Ability slots update
-  for _, abilitySlot in ipairs(game.abilitySlots) do
-    abilitySlot:update(dt)
+  -- Abilities update
+  for _, ability in ipairs(game.abilities) do
+    ability:update(dt)
   end
 
   -- Castbar update
   game.castBar:update(dt)
+
+  -- Check if we are done casting
+  if game.castingAbility ~= nil and game.castBar.done then
+    game.finishedCasting()
+  end
 
   -- Destroy combat texts outside of the screen
   for i = #game.combatTexts, 1, -1 do
@@ -88,7 +102,7 @@ function game.createCombatText(text)
 end
 
 function game.press(x,y)
-  diagnostics.touchpressed(x, y)
+  diagnostics.touchPressed(x, y)
 
   local renderX, renderY = rendering.screenToRender(x,y)
   for _, abilitySlot in ipairs(game.abilitySlots) do
@@ -99,7 +113,7 @@ function game.press(x,y)
 end
 
 function game.release(x,y)
-  diagnostics.touchreleased(x, y)
+  diagnostics.touchReleased(x, y)
 
   local renderX, renderY = rendering.screenToRender(x,y)
 
@@ -117,24 +131,65 @@ function game.release(x,y)
   if abilitySlotReleased == nil then
     diagnostics.releaseEmptySpace()
   else
-    diagnostics.spellrelease(abilitySlotIndex)
-    game.createCombatText(""..abilitySlotIndex)
-  end
-
-  -- Trigger cooldowns
-  if abilitySlotReleased ~= nil then
-    for _, abilitySlot in ipairs(game.abilitySlots) do
-      if abilitySlot == abilitySlotReleased then
-        abilitySlotReleased:triggerCooldown(0.5 + math.random() * 10.0)
+    local ability = abilitySlotReleased.ability
+    diagnostics.absilitySlotRelease(abilitySlotIndex)
+    -- Already casting?
+    if (game.castingAbility ~= nil) then
+      -- There is pre-set window to queue next ability to cast before casting the current one is finished
+      if (game.queuedAbility == nil and ability:canBeCast() and game.castBar:remainingTime() <= game.queueWindow) then
+        game.queuedAbility = ability
+        game.queuedAbilitySlot = abilitySlotReleased
       else
-        abilitySlot:triggerCooldown(1.0)
+        abilitySlotReleased:release()
       end
+    -- Can be cast?
+    elseif (ability:canBeCast()) then
+      game.cast(ability, abilitySlotReleased)
+    else
+      abilitySlotReleased:release()
     end
   end
-  
-  -- Mark and pressed ability slots as released now
-  for _, abilitySlot in ipairs(game.abilitySlots) do
-    abilitySlot:release()
+end
+
+function game.cast(ability, abilitySlot)
+  game.castingAbilitySlot = abilitySlot
+  game.castingAbility = ability
+
+ -- Check cast time
+  if game.castingAbility.castTime > 0.0 then
+    game.castBar:startCasting(game.castingAbility.castTime)
+  else
+    -- Instant cast so we can trigger cooldown immediately and release
+    game.castingAbility:casted(game)
+    game.castingAbility:triggerCooldown()
+    game.castingAbilitySlot:release()
+  end
+
+  -- Trigger global cooldown
+  for _, ability in ipairs(game.abilities) do
+    ability:triggerGlobalCooldown(1.0)
+  end
+end
+
+function game.finishedCasting()
+  game.castingAbility:triggerCooldown()
+  game.castingAbilitySlot:release()
+  game.castingAbility:casted(game)
+  game.castingAbility = nil
+  game.castingAbilitySlot = nil
+  game.castBar:castingEnded()
+  -- Ability queued?
+  if (game.queuedAbility ~= nil) then
+    -- Can it be cast at the moment?
+    if game.queuedAbility:canBeCast() then
+      game.cast(game.queuedAbility, game.queuedAbilitySlot)
+    -- Cannot be cast so just release the slot
+    else
+      game.queuedAbilitySlot:release()
+    end
+
+    game.queuedAbility = nil
+    game.queuedAbilitySlot = nil
   end
 end
 

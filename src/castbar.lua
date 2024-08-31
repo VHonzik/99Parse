@@ -1,5 +1,7 @@
 local assets = require('assets')
 
+dbg = require 'debugger'
+
 local castbar = {}
 castbar.__index = castbar
 castbar.x = 0
@@ -16,7 +18,7 @@ function castbar.load()
   castbar.h = assets.T_CastbarBorder:getHeight()
 end
 
-function castbar.createMesh(self, width, height)
+function castbar.createMesh(_, width, height)
   local vertices = {
 		{
 			-- top-left corner
@@ -95,6 +97,8 @@ function castbar.new(initialValues)
   cb.hlNinePatch.mesh:setTexture(assets.T_CastbarHighlight)
 
   cb.speed = castbar.speed
+  cb.done = true
+  cb.shown = false
   return cb
 end
 
@@ -115,32 +119,50 @@ function castbar.drawNinePatch(_, ninePatch, clip)
 end
 
 function castbar.draw(self)
-  -- Uniform for all Castbar textures
-  assets.S_NinePatchRect:send("texture_size", {castbar.w, castbar.h})
+  if self.shown then
+    -- Uniform for all Castbar textures
+    assets.S_NinePatchRect:send("texture_size", {castbar.w, castbar.h})
 
-  -- Map the self.value to 0-1 range
-  local valueClamped = math.min(math.max(self.value, self.min), self.max)
-  local t = (valueClamped - self.min) / (self.max - self.min)
+    -- Map the self.value to 0-1 range
+    local valueClamped = math.min(math.max(self.value, self.min), self.max)
+    local t = (valueClamped - self.min) / (self.max - self.min)
 
-  -- Highlight moves with t
-  self.hlNinePatch.x = self.x - self.w * 0.5 + t * self.w - castbar.w * 0.5
+    -- Highlight moves with t
+    self.hlNinePatch.x = self.x - self.w * 0.5 + t * self.w - castbar.w * 0.5
 
-  -- Draw Castbar nine-patch textures
-  self:drawNinePatch(self.bgNinePatch)
-  self:drawNinePatch(self.fillNinePatch, t)
-  self:drawNinePatch(self.borderNinePatch)
-  self:drawNinePatch(self.hlNinePatch)
+    -- Draw Castbar nine-patch textures
+    self:drawNinePatch(self.bgNinePatch)
+    self:drawNinePatch(self.fillNinePatch, t)
+    self:drawNinePatch(self.borderNinePatch)
+    self:drawNinePatch(self.hlNinePatch)
+  end
 end
 
 function castbar.update(self, dt)
-  self.value = self.value + self.speed * dt
-  if (self.value >= self.max) then
-    self.value = self.max - (self.value - self.max)
-    self.speed = -self.speed
-  elseif (self.value <= self.min) then
-    self.value = self.min + (self.min - self.value)
-    self.speed = -self.speed
+  if not self.done then
+    self.value = self.value + self.speed * dt
+    if self.value > self.max then
+      self.value = self.max
+      self.done = true
+    end
   end
+end
+
+function castbar.startCasting(self, duration)
+  self.max = duration
+  self.min = 0.0
+  self.value = self.min
+  self.speed = 1.0
+  self.done = false
+  self.shown = true
+end
+
+function castbar.castingEnded(self)
+  self.shown = false
+end
+
+function castbar.remainingTime(self)
+  return (self.max - self.value)
 end
 
 return Castbar

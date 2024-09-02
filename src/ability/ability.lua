@@ -10,7 +10,6 @@ function a:new(initialValues)
   setmetatable(object, self)
   object.onCooldown = false
   object.cooldownTimer = 0.0
-  object.baseCooldown = a.baseCooldown
   object.cooldownDuration = 0.0
   return object
 end
@@ -42,7 +41,9 @@ function a:_triggerCooldown(duration)
 end
 
 function a:triggerCooldown()
-  self:_triggerCooldown(self.baseCooldown)
+  if self.baseCooldown > 0.0 then
+    self:_triggerCooldown(self.baseCooldown)
+  end  
 end
 
 function a:triggerGlobalCooldown(duration)

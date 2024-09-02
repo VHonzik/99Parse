@@ -12,7 +12,8 @@ local rendering = require('rendering')
 require("abilityslot")
 require("combattext")
 require("castbar")
-require("ability")
+require("ability.ability")
+require("ability.arcaneblast")
 
 local game = {}
 
@@ -30,15 +31,18 @@ function game.load()
   diagnostics.load()
   rendering.load()
   Castbar.load()
+  ArcaneBlast.load()
 
-  -- Create ability slots and abilities
-  for i = 0, 4 do
-    local y = 40 + (assets.T_ArcaneBlast:getHeight() + 35) * i
-    local ability = Ability:new{icon=assets.T_ArcaneBlast, index=i}
-    local abilitySlot = AbilitySlot:new{x=50, y=y, ability=ability}
-    table.insert(game.abilities, ability)
-    table.insert(game.abilitySlots, abilitySlot)
-  end
+  -- Create abilities and ability slots
+  local arcaneBlast = ArcaneBlast:new{baseCooldown=0, index=0}
+  table.insert(game.abilities, arcaneBlast)
+  local arcaneBlastSlot = AbilitySlot:new{x=60, y=40, ability=arcaneBlast}
+  table.insert(game.abilitySlots, arcaneBlastSlot)
+
+  local arcaneMissiles = Ability:new{index=1, icon=assets.T_ArcaneMissiles}
+  table.insert(game.abilities, arcaneMissiles)
+  local arcaneMissilesSlot = AbilitySlot:new{x=rendering.renderresolution.w-170-60, y=40, ability=arcaneMissiles}
+  table.insert(game.abilitySlots, arcaneMissilesSlot)
 
   -- Create cast bar
   game.castBar = Castbar.new{x=rendering.renderresolution.w*0.5, y=rendering.renderresolution.h*0.5, w=800, h=100} 
@@ -139,7 +143,7 @@ function game.release(x,y)
       if (game.queuedAbility == nil and ability:canBeCast() and game.castBar:remainingTime() <= game.queueWindow) then
         game.queuedAbility = ability
         game.queuedAbilitySlot = abilitySlotReleased
-      else
+      elseif (game.castingAbility ~= ability) then
         abilitySlotReleased:release()
       end
     -- Can be cast?
@@ -182,6 +186,7 @@ function game.finishedCasting()
   if (game.queuedAbility ~= nil) then
     -- Can it be cast at the moment?
     if game.queuedAbility:canBeCast() then
+      game.queuedAbilitySlot:press()
       game.cast(game.queuedAbility, game.queuedAbilitySlot)
     -- Cannot be cast so just release the slot
     else

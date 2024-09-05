@@ -1,7 +1,5 @@
 local assets = require('assets')
 
-dbg = require 'debugger'
-
 local castbar = {}
 castbar.__index = castbar
 castbar.x = 0
@@ -9,138 +7,62 @@ castbar.y = 0
 castbar.min = 0.0
 castbar.max = 1.0
 castbar.value = 0.0
-castbar.speed = (castbar.max - castbar.min) / 2.0
+castbar.fillTextureOffsets = {x=4, y=4}
 
 Castbar = castbar
 
 function castbar.load()
-  castbar.w = assets.T_CastbarBorder:getWidth()
-  castbar.h = assets.T_CastbarBorder:getHeight()
-end
-
-function castbar.createMesh(_, width, height)
-  local vertices = {
-		{
-			-- top-left corner
-			0, 0, -- position of the vertex
-			0, 0, -- texture coordinate at the vertex position
-		},
-		{
-			-- top-right corner
-			width, 0,
-			1, 0, -- texture coordinates are in the range of [0, 1]
-			1, 1, 1
-		},
-		{
-			-- bottom-right corner
-			width, height,
-			1, 1,
-		},
-		{
-			-- bottom-left corner
-			0, height,
-			0, 1
-		},
-	}
-
-  return love.graphics.newMesh(vertices, "fan")
+  castbar.w = assets.T_BarBackground:getWidth()
+  castbar.h = assets.T_BarBackground:getHeight()
+  castbar.hlW = assets.T_CastbarHighlight:getWidth()
+  castbar.txtYOffset = assets.F_WashYourHands_72:getHeight() * 0.5
 end
 
 function castbar.new(initialValues)
   local cb = initialValues or {}
   setmetatable(cb, castbar)
 
-  local extendedSize = {w=cb.w + 10.0, h=cb.h + 10.0}
-
-  -- Create 9-Patch tables for rendering Castbar textures
-  -- Semi-transparent dark background
-  cb.bgNinePatch = {w=extendedSize.w,
-    h=extendedSize.h,
-    borders={10.0, 10.0},
-    color=nil,
-  }
-  cb.bgNinePatch.x = cb.x-cb.bgNinePatch.w*0.5
-  cb.bgNinePatch.y = cb.y-cb.bgNinePatch.h*0.5
-  cb.bgNinePatch.mesh = cb:createMesh(cb.bgNinePatch.w, cb.bgNinePatch.h)
-  cb.bgNinePatch.mesh:setTexture(assets.T_CastbarBackground)
-
-  -- Colored fill
-  cb.fillNinePatch = {w=cb.w,
-    h=cb.h,
-    borders={10.0, 10.0},
-    color={1.0, 0.0, 0.0},
-  }
-  cb.fillNinePatch.x = cb.x-cb.fillNinePatch.w*0.5
-  cb.fillNinePatch.y = cb.y-cb.fillNinePatch.h*0.5
-  cb.fillNinePatch.mesh = cb:createMesh(cb.fillNinePatch.w, cb.fillNinePatch.h)
-  cb.fillNinePatch.mesh:setTexture(assets.T_CastbarFill)
-
-  -- Solid border
-  cb.borderNinePatch = {w=extendedSize.w,
-    h=extendedSize.h,
-    borders={10.0, 10.0},
-    color=nil,
-  }
-  cb.borderNinePatch.x = cb.x-cb.borderNinePatch.w*0.5
-  cb.borderNinePatch.y = cb.y-cb.borderNinePatch.h*0.5
-  cb.borderNinePatch.mesh = cb:createMesh(cb.borderNinePatch.w, cb.borderNinePatch.h)
-  cb.borderNinePatch.mesh:setTexture(assets.T_CastbarBorder)
-
-  -- Highlight
-  cb.hlNinePatch = {w=castbar.w,
-    h=extendedSize.h,
-    borders={0.0, 20.0},
-    color=nil,
-  }
-  cb.hlNinePatch.y = cb.y-cb.hlNinePatch.h*0.5
-  cb.hlNinePatch.mesh = cb:createMesh(cb.hlNinePatch.w, cb.hlNinePatch.h)
-  cb.hlNinePatch.mesh:setTexture(assets.T_CastbarHighlight)
-
-  cb.speed = castbar.speed
   cb.done = true
   cb.shown = false
+  cb.text = ""
   return cb
 end
 
-function castbar.drawNinePatch(_, ninePatch, clip)
-  clip = clip or 1.0
-  love.graphics.setShader(assets.S_NinePatchRect)
-  assets.S_NinePatchRect:send("render_size", {ninePatch.w, ninePatch.h})
-  assets.S_NinePatchRect:send("border_pixels", {ninePatch.borders[1], ninePatch.borders[2]})
-  assets.S_NinePatchRect:send("clip_x", clip)
-  if ninePatch.color then
-    love.graphics.setColor(ninePatch.color)
-  end
-  love.graphics.draw(ninePatch.mesh, ninePatch.x, ninePatch.y)
-  love.graphics.setShader()
-  if ninePatch.color then
-    love.graphics.setColor(1, 1, 1)
-  end
+function castbar:calculateClipMax()
+  local valueClamped = math.min(math.max(self.value, 0.0), self.max)
+  local t = (valueClamped - 0.0) / (self.max - 0.0)
+  -- The fill texture the has same dimensions as the background texture but the border is empty
+  -- Therefore we need to use the `t` from we got from self.value find t in coordinate space defined by `fillTextureOffsets`
+  local uvOffsets = {x=self.fillTextureOffsets.x / self.w, y=self.fillTextureOffsets.y / self.h}
+  local fillT = uvOffsets.x + t * ((1.0 - uvOffsets.x) - (uvOffsets.x))
+  return fillT
 end
+
 
 function castbar.draw(self)
   if self.shown then
-    -- Uniform for all Castbar textures
-    assets.S_NinePatchRect:send("texture_size", {castbar.w, castbar.h})
+    love.graphics.draw(assets.T_BarBackground, self.x - self.w * 0.5, self.y - self.h * 0.5)
 
-    -- Map the self.value to 0-1 range
-    local valueClamped = math.min(math.max(self.value, self.min), self.max)
-    local t = (valueClamped - self.min) / (self.max - self.min)
+    local t = self:calculateClipMax()
+    assets.S_ClipFade:send("clip_x", t)
+    assets.S_ClipFade:send("uv_fade", 5.0/self.w)
 
-    -- Highlight moves with t
-    self.hlNinePatch.x = self.x - self.w * 0.5 + t * self.w - castbar.w * 0.5
+    love.graphics.setShader(assets.S_ClipFade)
+      love.graphics.draw(assets.T_CastbarFill, self.x - self.w * 0.5, self.y - self.h * 0.5)
+    love.graphics.setShader()
 
-    -- Draw Castbar nine-patch textures
-    self:drawNinePatch(self.bgNinePatch)
-    self:drawNinePatch(self.fillNinePatch, t)
-    self:drawNinePatch(self.borderNinePatch)
-    self:drawNinePatch(self.hlNinePatch)
+    love.graphics.draw(assets.T_CastbarHighlight, self.x - self.hlW * 0.5 + self.w * (-0.5 + t), self.y - self.h * 0.5)
+
+    love.graphics.setFont(assets.F_WashYourHands_72)
+    local txtW = assets.F_WashYourHands_72:getWidth(self.text)
+    love.graphics.print(self.text, math.floor(self.x - txtW*0.5), math.floor(self.y - self.txtYOffset))
+    love.graphics.setNewFont(12)
   end
 end
 
 function castbar.update(self, dt)
   if not self.done then
-    self.value = self.value + self.speed * dt
+    self.value = self.value + dt
     if self.value > self.max then
       self.value = self.max
       self.done = true
@@ -148,13 +70,13 @@ function castbar.update(self, dt)
   end
 end
 
-function castbar.startCasting(self, duration)
+function castbar.startCasting(self, duration, text)
   self.max = duration
   self.min = 0.0
   self.value = self.min
-  self.speed = 1.0
   self.done = false
   self.shown = true
+  self.text = text
 end
 
 function castbar.castingEnded(self)

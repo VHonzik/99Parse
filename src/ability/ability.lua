@@ -2,6 +2,9 @@ local a = {}
 a.__index = a
 a.castTime = 2.0
 a.baseCooldown = 1.0 + math.random() * 10.0
+a.displayName = "WIP"
+
+a.manaCost = 1013
 
 Ability = a
 
@@ -56,6 +59,7 @@ end
 
 function a:casted(game)
   game.createCombatText(""..self.index)
+  game.manaBar.value = game.manaBar.value - self.manaCost
 end
 
 return Ability

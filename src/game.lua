@@ -14,6 +14,7 @@ require("combattext")
 require("castbar")
 require("ability.ability")
 require("ability.arcaneblast")
+require("manabar")
 
 local game = {}
 
@@ -32,6 +33,7 @@ function game.load()
   rendering.load()
   Castbar.load()
   ArcaneBlast.load()
+  Manabar.load()
 
   -- Create abilities and ability slots
   local arcaneBlast = ArcaneBlast:new{baseCooldown=0, index=0}
@@ -45,7 +47,9 @@ function game.load()
   table.insert(game.abilitySlots, arcaneMissilesSlot)
 
   -- Create cast bar
-  game.castBar = Castbar.new{x=rendering.renderresolution.w*0.5, y=rendering.renderresolution.h*0.5, w=800, h=100} 
+  game.castBar = Castbar.new{x=rendering.renderresolution.w*0.5, y=rendering.renderresolution.h*0.5, w=800, h=100}
+  -- Create mana bar
+  game.manaBar = Manabar.new{x=rendering.renderresolution.w*0.5, y=rendering.renderresolution.h*0.75, value=20000}
 end
 
 function game.update(dt)
@@ -93,6 +97,7 @@ function game.draw()
       abilitySlot:draw()
     end
     game.castBar:draw()
+    game.manaBar:draw()
     for _, combatText in ipairs(game.combatTexts) do
       combatText:draw()
     end
@@ -161,7 +166,7 @@ function game.cast(ability, abilitySlot)
 
  -- Check cast time
   if game.castingAbility.castTime > 0.0 then
-    game.castBar:startCasting(game.castingAbility.castTime)
+    game.castBar:startCasting(game.castingAbility.castTime, game.castingAbility.displayName)
   else
     -- Instant cast so we can trigger cooldown immediately and release
     game.castingAbility:casted(game)
